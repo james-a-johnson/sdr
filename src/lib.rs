@@ -13,3 +13,4 @@ pub mod fft;
 pub mod filter;
 pub mod iq_file;
 pub mod modulation;
+pub mod pipeline;

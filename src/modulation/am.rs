@@ -27,7 +27,7 @@ use crate::complex::Complex;
 /// use sdr::modulation::am::AmModulator;
 /// use std::f32::consts::PI;
 ///
-/// let mod_ = AmModulator::new(1.0);
+/// let mut mod_ = AmModulator::new(1.0);
 /// let baseband: Vec<f32> = (0..1024)
 ///     .map(|i| (2.0 * PI * 1000.0 * i as f32 / 48_000.0).sin())
 ///     .collect();
@@ -59,7 +59,7 @@ impl AmModulator {
     /// Returns one complex sample per input sample. The Q component is always
     /// `0.0`; the I component encodes the carrier plus the scaled baseband
     /// signal: `1.0 + depth * x[n]`.
-    pub fn modulate(&self, baseband: &[f32]) -> Vec<Complex<f32>> {
+    pub fn modulate(&mut self, baseband: &[f32]) -> Vec<Complex<f32>> {
         baseband
             .iter()
             .map(|&x| Complex::new(1.0 + self.modulation_depth * x, 0.0))
@@ -119,10 +119,22 @@ impl AmDemodulator {
     ///
     /// Returns one `f32` sample per input IQ sample using envelope detection:
     /// `(|iq[n]| − 1.0) / depth`.
-    pub fn demodulate(&self, iq: &[Complex<f32>]) -> Vec<f32> {
+    pub fn demodulate(&mut self, iq: &[Complex<f32>]) -> Vec<f32> {
         iq.iter()
             .map(|c| (c.abs() - 1.0) / self.modulation_depth)
             .collect()
+    }
+}
+
+impl crate::pipeline::Modulate for AmModulator {
+    fn modulate(&mut self, audio: &[f32]) -> Vec<crate::complex::Complex<f32>> {
+        self.modulate(audio)
+    }
+}
+
+impl crate::pipeline::Demodulate for AmDemodulator {
+    fn demodulate(&mut self, iq: &[crate::complex::Complex<f32>]) -> Vec<f32> {
+        self.demodulate(iq)
     }
 }
 

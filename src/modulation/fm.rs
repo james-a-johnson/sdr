@@ -175,6 +175,18 @@ impl FmDemodulator {
     }
 }
 
+impl crate::pipeline::Modulate for FmModulator {
+    fn modulate(&mut self, audio: &[f32]) -> Vec<crate::complex::Complex<f32>> {
+        self.modulate(audio)
+    }
+}
+
+impl crate::pipeline::Demodulate for FmDemodulator {
+    fn demodulate(&mut self, iq: &[crate::complex::Complex<f32>]) -> Vec<f32> {
+        self.demodulate(iq)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
