@@ -62,10 +62,7 @@ fn fft_inplace(buf: &mut Vec<Complex<f32>>, inverse: bool) {
     let mut len = 2;
     while len <= n {
         let half = len / 2;
-        let w_step = Complex::new(
-            (sign * 2.0 * PI / len as f32).cos(),
-            (sign * 2.0 * PI / len as f32).sin(),
-        );
+        let w_step = Complex::from_polar(1.0, sign * 2.0 * PI / len as f32);
         for i in (0..n).step_by(len) {
             let mut w = Complex::new(1.0_f32, 0.0_f32);
             for j in 0..half {
@@ -137,7 +134,7 @@ pub fn magnitude_db(spectrum: &[Complex<f32>]) -> Vec<f32> {
     spectrum
         .iter()
         .map(|c| {
-            let power = c.i * c.i + c.q * c.q;
+            let power = c.norm_sq();
             10.0 * power.max(1e-12).log10()
         })
         .collect()
@@ -154,7 +151,7 @@ mod tests {
         samples[0] = Complex::new(1.0, 0.0);
         let spectrum = fft(&samples);
         for c in &spectrum {
-            let mag = (c.i * c.i + c.q * c.q).sqrt();
+            let mag = c.abs();
             assert!(
                 (mag - 1.0).abs() < 1e-5,
                 "Impulse should give flat spectrum, got {}",

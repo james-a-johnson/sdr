@@ -97,7 +97,7 @@ impl Filter<f32> for FreqShift {
     fn filter(&mut self, data: &[Complex<f32>]) -> Vec<Complex<f32>> {
         data.iter()
             .map(|&s| {
-                let mixer = Complex::new(self.phase.cos(), self.phase.sin());
+                let mixer = Complex::from_polar(1.0, self.phase);
                 self.phase = (self.phase + self.phase_step).rem_euclid(2.0 * PI);
                 s * mixer
             })

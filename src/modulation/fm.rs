@@ -82,7 +82,7 @@ impl FmModulator {
             .iter()
             .map(|&sample| {
                 self.phase = (self.phase + self.phase_increment * sample).rem_euclid(2.0 * PI);
-                Complex::new(self.phase.cos(), self.phase.sin())
+                Complex::from_polar(1.0, self.phase)
             })
             .collect()
     }
@@ -156,7 +156,7 @@ impl FmDemodulator {
     /// The value is wrapped into `[0, 2π)` via `rem_euclid`.
     pub fn set_phase(&mut self, phase: f32) {
         let p = phase.rem_euclid(2.0 * PI);
-        self.prev = Complex::new(p.cos(), p.sin());
+        self.prev = Complex::from_polar(1.0, p);
     }
 
     /// Demodulate a slice of IQ samples into a real baseband signal.
@@ -167,7 +167,7 @@ impl FmDemodulator {
         iq.iter()
             .map(|&sample| {
                 let z = sample * self.prev.conjugate();
-                let freq = z.q.atan2(z.i) * self.scale;
+                let freq = z.arg() * self.scale;
                 self.prev = sample;
                 freq
             })
