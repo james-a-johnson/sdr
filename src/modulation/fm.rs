@@ -58,6 +58,20 @@ impl FmModulator {
         }
     }
 
+    /// Return the current phase accumulator value in radians, in `[0, 2π)`.
+    pub fn phase(&self) -> f32 {
+        self.phase
+    }
+
+    /// Set the phase accumulator to `phase` radians.
+    ///
+    /// The value is wrapped into `[0, 2π)` via `rem_euclid`. Use this to
+    /// align the modulator's carrier phase with an external reference or to
+    /// resume modulation from a known starting phase.
+    pub fn set_phase(&mut self, phase: f32) {
+        self.phase = phase.rem_euclid(2.0 * PI);
+    }
+
     /// Modulate a slice of baseband samples into IQ output.
     ///
     /// Returns one complex sample per input sample. The phase accumulator is
@@ -130,6 +144,19 @@ impl FmDemodulator {
             prev: Complex::new(1.0, 0.0),
             scale,
         }
+    }
+
+    /// Set the reference phase used by the discriminator.
+    ///
+    /// The demodulator tracks phase via a `prev` sample rather than a scalar
+    /// angle. `set_phase` constructs the equivalent unit-magnitude phasor
+    /// `(cos(phase), sin(phase))` and stores it as the new reference, so the
+    /// next output sample is computed relative to that angle.
+    ///
+    /// The value is wrapped into `[0, 2π)` via `rem_euclid`.
+    pub fn set_phase(&mut self, phase: f32) {
+        let p = phase.rem_euclid(2.0 * PI);
+        self.prev = Complex::new(p.cos(), p.sin());
     }
 
     /// Demodulate a slice of IQ samples into a real baseband signal.

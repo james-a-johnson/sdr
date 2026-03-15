@@ -76,6 +76,15 @@ impl FreqShift {
     pub fn phase(&self) -> f32 {
         self.phase
     }
+
+    /// Set the phase accumulator to `phase` radians.
+    ///
+    /// The value is wrapped into `[0, 2π)` via `rem_euclid` so any angle is
+    /// accepted. Use this to synchronise the local oscillator with an external
+    /// reference or to resume a stream from a known phase offset.
+    pub fn set_phase(&mut self, phase: f32) {
+        self.phase = phase.rem_euclid(2.0 * PI);
+    }
 }
 
 impl Filter<f32> for FreqShift {
