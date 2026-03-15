@@ -1,3 +1,22 @@
+//! Radix-2 Cooley-Tukey FFT for spectrum analysis.
+//!
+//! All functions operate on [`Complex<f32>`] samples. Inputs must be a
+//! power-of-two length; violating this constraint causes a panic.
+//!
+//! # Example
+//!
+//! ```
+//! use sdr::complex::Complex;
+//! use sdr::fft::{fft, magnitude_db};
+//!
+//! let samples: Vec<Complex<f32>> = (0..1024)
+//!     .map(|i| Complex::new((i as f32 * 0.1).sin(), 0.0))
+//!     .collect();
+//!
+//! let spectrum = fft(&samples);
+//! let db = magnitude_db(&spectrum);
+//! ```
+
 use crate::complex::Complex;
 use std::f32::consts::PI;
 
@@ -5,6 +24,8 @@ fn is_power_of_two(n: usize) -> bool {
     n > 0 && (n & (n - 1)) == 0
 }
 
+/// Reorder `buf` into bit-reversed index order, the first step of the
+/// Cooley-Tukey DIT algorithm.
 fn bit_reverse_permute(buf: &mut Vec<Complex<f32>>) {
     let n = buf.len();
     let bits = n.ilog2() as usize;
@@ -16,6 +37,7 @@ fn bit_reverse_permute(buf: &mut Vec<Complex<f32>>) {
     }
 }
 
+/// Reverse the `bits` least-significant bits of `x`.
 fn reverse_bits(mut x: usize, bits: usize) -> usize {
     let mut result = 0;
     for _ in 0..bits {
@@ -25,6 +47,11 @@ fn reverse_bits(mut x: usize, bits: usize) -> usize {
     result
 }
 
+/// In-place radix-2 DIT FFT / IFFT kernel.
+///
+/// `inverse = false` computes the forward transform; `inverse = true`
+/// computes the unnormalized inverse (the caller is responsible for the
+/// 1/N scale factor).
 fn fft_inplace(buf: &mut Vec<Complex<f32>>, inverse: bool) {
     let n = buf.len();
     assert!(is_power_of_two(n), "FFT length must be a power of 2");
@@ -53,12 +80,28 @@ fn fft_inplace(buf: &mut Vec<Complex<f32>>, inverse: bool) {
     }
 }
 
+/// Compute the forward discrete Fourier transform.
+///
+/// Returns a new `Vec` of the same length as `samples`. The output is in
+/// standard order: bin 0 is DC, bins 1..N/2 are positive frequencies up to
+/// Nyquist, and bins N/2+1..N-1 are negative frequencies.
+///
+/// # Panics
+///
+/// Panics if `samples.len()` is not a power of two.
 pub fn fft(samples: &[Complex<f32>]) -> Vec<Complex<f32>> {
     let mut buf = samples.to_vec();
     fft_inplace(&mut buf, false);
     buf
 }
 
+/// Compute the inverse discrete Fourier transform.
+///
+/// The output is normalized by `1/N` so that `ifft(fft(x)) ≈ x`.
+///
+/// # Panics
+///
+/// Panics if `spectrum.len()` is not a power of two.
 pub fn ifft(spectrum: &[Complex<f32>]) -> Vec<Complex<f32>> {
     let n = spectrum.len();
     let mut buf = spectrum.to_vec();
@@ -71,6 +114,25 @@ pub fn ifft(spectrum: &[Complex<f32>]) -> Vec<Complex<f32>> {
     buf
 }
 
+/// Convert a complex spectrum into power in dBFS (decibels relative to
+/// full scale).
+///
+/// Each bin's power is `|c|² = c.i² + c.q²`. The result is
+/// `10 · log₁₀(power)`, floored at `−120 dBFS` to avoid `-inf` for
+/// zero-power bins.
+///
+/// # Example
+///
+/// ```
+/// use sdr::complex::Complex;
+/// use sdr::fft::{fft, magnitude_db};
+///
+/// let mut impulse = vec![Complex::new(0.0_f32, 0.0); 64];
+/// impulse[0] = Complex::new(1.0, 0.0);
+/// let db = magnitude_db(&fft(&impulse));
+/// // A unit impulse has flat spectrum at 0 dB
+/// assert!((db[0] - 0.0).abs() < 1e-3);
+/// ```
 pub fn magnitude_db(spectrum: &[Complex<f32>]) -> Vec<f32> {
     spectrum
         .iter()

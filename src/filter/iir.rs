@@ -1,11 +1,43 @@
+//! Biquad IIR filter using the Direct Form II Transposed structure.
+
 use super::Filter;
 use crate::complex::Complex;
 use num_traits::Float;
 
+/// Cast an `f64` literal to any [`Float`] type at construction time.
 fn f<T: Float>(x: f64) -> T {
     T::from(x).unwrap()
 }
 
+/// Stateful biquad IIR filter (Direct Form II Transposed).
+///
+/// Processes I and Q channels independently with shared coefficients, so a
+/// single filter instance handles a full complex IQ stream without cross-talk
+/// between channels.
+///
+/// ## Difference equation
+///
+/// Given input `x[n]` and output `y[n]`, the filter computes:
+///
+/// ```text
+/// y[n]  = b0·x[n] + w1
+/// w1    = b1·x[n] − a1·y[n] + w2
+/// w2    = b2·x[n] − a2·y[n]
+/// ```
+///
+/// where `(w1, w2)` are the delay-line state registers. The denominator
+/// polynomial is `1 + a1·z⁻¹ + a2·z⁻²` (i.e. `a0` is normalized to 1).
+///
+/// ## Streaming safety
+///
+/// State persists across [`Filter::filter`] calls. Splitting a stream into
+/// blocks and filtering each block in sequence produces the same result as
+/// filtering the entire stream at once.
+///
+/// ## Constructors
+///
+/// Use [`Iir::new`] for raw coefficients, or one of the Audio EQ Cookbook
+/// presets: [`Iir::lowpass`], [`Iir::highpass`], [`Iir::bandpass`].
 pub struct Iir<T> {
     b0: T,
     b1: T,
@@ -19,6 +51,15 @@ pub struct Iir<T> {
 }
 
 impl<T: Float + Copy> Iir<T> {
+    /// Create a biquad filter from raw normalized coefficients.
+    ///
+    /// Coefficients follow the convention where the denominator leading term
+    /// is 1 (i.e. `a0 = 1`). Pass feedback coefficients already divided by
+    /// `a0` if your source uses the un-normalized form.
+    ///
+    /// * `b0, b1, b2` — feedforward (numerator) coefficients
+    /// * `a1, a2`     — feedback (denominator) coefficients, sign convention:
+    ///   the denominator is `1 + a1·z⁻¹ + a2·z⁻²`
     pub fn new(b0: T, b1: T, b2: T, a1: T, a2: T) -> Self {
         Self {
             b0,
@@ -33,6 +74,12 @@ impl<T: Float + Copy> Iir<T> {
         }
     }
 
+    /// Design a second-order Butterworth lowpass filter using the Audio EQ
+    /// Cookbook formulas.
+    ///
+    /// * `sample_rate` — sample rate in Hz
+    /// * `cutoff`      — −3 dB cutoff frequency in Hz
+    /// * `q`           — quality factor (0.707 ≈ maximally flat / Butterworth)
     pub fn lowpass(sample_rate: f64, cutoff: f64, q: f64) -> Self {
         let w0 = 2.0 * std::f64::consts::PI * cutoff / sample_rate;
         let alpha = w0.sin() / (2.0 * q);
@@ -46,6 +93,12 @@ impl<T: Float + Copy> Iir<T> {
         Self::new(f(b0), f(b1), f(b2), f(a1), f(a2))
     }
 
+    /// Design a second-order Butterworth highpass filter using the Audio EQ
+    /// Cookbook formulas.
+    ///
+    /// * `sample_rate` — sample rate in Hz
+    /// * `cutoff`      — −3 dB cutoff frequency in Hz
+    /// * `q`           — quality factor (0.707 ≈ maximally flat / Butterworth)
     pub fn highpass(sample_rate: f64, cutoff: f64, q: f64) -> Self {
         let w0 = 2.0 * std::f64::consts::PI * cutoff / sample_rate;
         let alpha = w0.sin() / (2.0 * q);
@@ -59,6 +112,12 @@ impl<T: Float + Copy> Iir<T> {
         Self::new(f(b0), f(b1), f(b2), f(a1), f(a2))
     }
 
+    /// Design a second-order bandpass filter using the Audio EQ Cookbook
+    /// formulas (constant 0 dB peak gain).
+    ///
+    /// * `sample_rate` — sample rate in Hz
+    /// * `cutoff`      — center frequency in Hz
+    /// * `q`           — quality factor; higher Q = narrower passband
     pub fn bandpass(sample_rate: f64, cutoff: f64, q: f64) -> Self {
         let w0 = 2.0 * std::f64::consts::PI * cutoff / sample_rate;
         let alpha = w0.sin() / (2.0 * q);
@@ -72,6 +131,10 @@ impl<T: Float + Copy> Iir<T> {
         Self::new(f(b0), f(b1), f(b2), f(a1), f(a2))
     }
 
+    /// Zero all internal state registers.
+    ///
+    /// Call this before reusing the filter on a new, unrelated stream to
+    /// prevent the previous signal's tail from bleeding into the new one.
     pub fn reset(&mut self) {
         self.w1_i = f(0.0);
         self.w2_i = f(0.0);
@@ -80,6 +143,11 @@ impl<T: Float + Copy> Iir<T> {
     }
 }
 
+/// Direct Form II Transposed single-sample update.
+///
+/// Inlined free function to avoid the borrow-checker conflict that arises when
+/// `&self` (for coefficients) and `&mut self.wN` (for state) are held
+/// simultaneously inside a method.
 #[inline(always)]
 fn process_sample<T: Float + Copy>(
     b0: T,
@@ -98,6 +166,10 @@ fn process_sample<T: Float + Copy>(
 }
 
 impl<T: Float + Copy> Filter<T> for Iir<T> {
+    /// Filter a block of complex samples, updating internal state.
+    ///
+    /// The I and Q channels are processed independently: I-channel state
+    /// (`w1_i`, `w2_i`) is never mixed with Q-channel state (`w1_q`, `w2_q`).
     fn filter(&mut self, data: &[Complex<T>]) -> Vec<Complex<T>> {
         let (b0, b1, b2, a1, a2) = (self.b0, self.b1, self.b2, self.a1, self.a2);
         data.iter()

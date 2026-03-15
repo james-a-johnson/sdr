@@ -1,15 +1,51 @@
+//! Frequency-shift filter (mixer / heterodyne).
+
 use super::Filter;
 use crate::complex::Complex;
 use std::f32::consts::PI;
 
-/// Frequency-shift filter (mixer / heterodyne).
+/// Shift the center frequency of an IQ stream by a fixed offset.
 ///
-/// Multiplies each input sample by the rotating phasor `e^(j·2π·shift·n/fs)`,
-/// translating the entire spectrum by `shift_hz`. A positive shift moves
-/// energy upward in frequency; negative shifts it down.
+/// Each sample is multiplied by the rotating phasor `e^(j·2π·shift·n/fs)`:
 ///
-/// The phase accumulator persists across `filter()` calls so the filter
-/// is safe to use on a continuous stream of blocks.
+/// ```text
+/// y[n] = x[n] · (cos(φ[n]) + j·sin(φ[n]))
+/// φ[n] = φ[n−1] + 2π·shift_hz / sample_rate   (mod 2π)
+/// ```
+///
+/// A **positive** `shift_hz` moves all energy *upward* in frequency; a
+/// **negative** value moves it downward. This is the standard SDR operation
+/// for tuning a signal from an arbitrary carrier to baseband (DC).
+///
+/// ## Streaming safety
+///
+/// The phase accumulator `φ` persists across [`Filter::filter`] calls.
+/// Splitting a stream into blocks and filtering each block in sequence
+/// produces the same result as filtering the whole stream at once.
+///
+/// ## Example
+///
+/// ```
+/// use sdr::filter::{freq_shift::FreqShift, Filter};
+/// use sdr::complex::Complex;
+/// use std::f32::consts::PI;
+///
+/// let sample_rate = 48_000.0_f32;
+/// let tone_hz = 5_000.0_f32;
+///
+/// // A complex tone at 5 kHz
+/// let samples: Vec<Complex<f32>> = (0..256)
+///     .map(|i| {
+///         let phase = 2.0 * PI * tone_hz * i as f32 / sample_rate;
+///         Complex::new(phase.cos(), phase.sin())
+///     })
+///     .collect();
+///
+/// // Shift down by 5 kHz → DC
+/// let mut shift = FreqShift::new(sample_rate, -tone_hz);
+/// let baseband = shift.filter(&samples);
+/// assert!((baseband[0].i - 1.0).abs() < 1e-5);
+/// ```
 pub struct FreqShift {
     phase: f32,
     phase_step: f32,
@@ -19,7 +55,8 @@ impl FreqShift {
     /// Create a new frequency-shift filter.
     ///
     /// * `sample_rate` — sample rate of the IQ stream in Hz
-    /// * `shift_hz`    — frequency offset to apply; positive = shift up
+    /// * `shift_hz`    — frequency offset to apply; positive = shift up,
+    ///   negative = shift down
     pub fn new(sample_rate: f32, shift_hz: f32) -> Self {
         Self {
             phase: 0.0,
@@ -27,18 +64,27 @@ impl FreqShift {
         }
     }
 
-    /// Zero the phase accumulator (useful when reusing the filter on a new stream).
+    /// Zero the phase accumulator.
+    ///
+    /// Useful when reusing the filter on a new, unrelated stream so that the
+    /// previous stream's final phase does not affect the next stream's output.
     pub fn reset(&mut self) {
         self.phase = 0.0;
     }
 
-    /// Current phase accumulator value in radians.
+    /// Return the current phase accumulator value in radians, in `[0, 2π)`.
     pub fn phase(&self) -> f32 {
         self.phase
     }
 }
 
 impl Filter<f32> for FreqShift {
+    /// Apply the frequency shift to a block of IQ samples.
+    ///
+    /// For each sample, computes the local oscillator phasor at the current
+    /// phase, multiplies, then advances the phase accumulator. The phase is
+    /// kept in `[0, 2π)` via `rem_euclid` to prevent `f32` precision loss
+    /// over long streams.
     fn filter(&mut self, data: &[Complex<f32>]) -> Vec<Complex<f32>> {
         data.iter()
             .map(|&s| {
