@@ -23,7 +23,17 @@ mod test {
     #[test]
     fn decimation_filter() {
         let mut filter: Decimate<3> = Decimate;
-        let samples = vec![(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8)];
+        let samples = vec![
+            (0, 0),
+            (1, 1),
+            (2, 2),
+            (3, 3),
+            (4, 4),
+            (5, 5),
+            (6, 6),
+            (7, 7),
+            (8, 8),
+        ];
         let samples: Vec<Complex<i32>> = samples.into_iter().map(|e| e.into()).collect();
         let filtered = filter.filter(&samples);
         assert_eq!(filtered[0], (0, 0));

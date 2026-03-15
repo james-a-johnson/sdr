@@ -93,7 +93,11 @@ mod tests {
         let spectrum = fft(&samples);
         for c in &spectrum {
             let mag = (c.i * c.i + c.q * c.q).sqrt();
-            assert!((mag - 1.0).abs() < 1e-5, "Impulse should give flat spectrum, got {}", mag);
+            assert!(
+                (mag - 1.0).abs() < 1e-5,
+                "Impulse should give flat spectrum, got {}",
+                mag
+            );
         }
     }
 
@@ -120,7 +124,11 @@ mod tests {
         let db = magnitude_db(&spectrum);
         for &v in &db {
             assert!(!v.is_nan(), "magnitude_db should not produce NaN");
-            assert!(v.is_finite() || v == f32::NEG_INFINITY, "unexpected value {}", v);
+            assert!(
+                v.is_finite() || v == f32::NEG_INFINITY,
+                "unexpected value {}",
+                v
+            );
             assert!(v >= -120.0, "floor should be >= -120 dBFS, got {}", v);
         }
     }

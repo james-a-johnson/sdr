@@ -9,10 +9,7 @@ pub struct Complex<T: Copy> {
 impl<T: Copy> Complex<T> {
     #[inline(always)]
     pub const fn new(real: T, imag: T) -> Self {
-        Self {
-            i: real,
-            q: imag,
-        }
+        Self { i: real, q: imag }
     }
 }
 
@@ -44,7 +41,9 @@ impl<T: Copy + ops::Sub<Output = T>> ops::Sub for Complex<T> {
     }
 }
 
-impl<T: Copy + ops::Mul<Output = T> + ops::Add<Output = T> + ops::Sub<Output = T>> ops::Mul for Complex<T> {
+impl<T: Copy + ops::Mul<Output = T> + ops::Add<Output = T> + ops::Sub<Output = T>> ops::Mul
+    for Complex<T>
+{
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {

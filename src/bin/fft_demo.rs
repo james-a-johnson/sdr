@@ -10,16 +10,16 @@ use std::time::{Duration, Instant};
 use crossterm::{
     event::{self, DisableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
     symbols,
     text::Line,
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
-    Terminal,
 };
 
 use sdr::{
@@ -78,10 +78,26 @@ impl App {
     fn new() -> Self {
         Self {
             tones: vec![
-                Tone { freq_hz: 2_000.0, pulse_rate: 0.3, peak: 0.8 },
-                Tone { freq_hz: 6_500.0, pulse_rate: 0.7, peak: 0.6 },
-                Tone { freq_hz: 11_200.0, pulse_rate: 1.1, peak: 0.5 },
-                Tone { freq_hz: 18_000.0, pulse_rate: 0.5, peak: 0.4 },
+                Tone {
+                    freq_hz: 2_000.0,
+                    pulse_rate: 0.3,
+                    peak: 0.8,
+                },
+                Tone {
+                    freq_hz: 6_500.0,
+                    pulse_rate: 0.7,
+                    peak: 0.6,
+                },
+                Tone {
+                    freq_hz: 11_200.0,
+                    pulse_rate: 1.1,
+                    peak: 0.5,
+                },
+                Tone {
+                    freq_hz: 18_000.0,
+                    pulse_rate: 0.5,
+                    peak: 0.4,
+                },
             ],
             sample_counter: 0,
             anim_time: 0.0,
@@ -104,7 +120,10 @@ impl App {
         let mut frame: Vec<f32> = (0..SAMPLES_PER_FRAME)
             .map(|i| {
                 let t_signal = (self.sample_counter + i) as f32 / SAMPLE_RATE;
-                self.tones.iter().map(|tone| tone.sample(t_signal, self.anim_time)).sum()
+                self.tones
+                    .iter()
+                    .map(|tone| tone.sample(t_signal, self.anim_time))
+                    .sum()
             })
             .collect();
         self.sample_counter += SAMPLES_PER_FRAME;
@@ -134,7 +153,11 @@ impl App {
             // Ceiling sits 6 dB above the peak, rounded up to nearest 10 dB
             let ceiling = ((peak + 6.0) / 10.0).ceil() * 10.0;
             // Smoothly chase the ceiling — fast attack, slow release
-            let alpha = if ceiling > self.y_max { 1.0 } else { 0.05_f32.powf(dt) };
+            let alpha = if ceiling > self.y_max {
+                1.0
+            } else {
+                0.05_f32.powf(dt)
+            };
             self.y_max = self.y_max + alpha * (ceiling - self.y_max);
             self.y_min = self.y_max - self.db_range();
         }
@@ -173,23 +196,25 @@ fn run_app<B: ratatui::backend::Backend>(
                 .map(|(i, &s)| (i as f64, s as f64))
                 .collect();
 
-            let time_chart = Chart::new(vec![Dataset::default()
-                .name("signal")
-                .marker(symbols::Marker::Braille)
-                .graph_type(GraphType::Line)
-                .style(Style::default().fg(Color::Cyan))
-                .data(&waveform_data)])
+            let time_chart = Chart::new(vec![
+                Dataset::default()
+                    .name("signal")
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(GraphType::Line)
+                    .style(Style::default().fg(Color::Cyan))
+                    .data(&waveform_data),
+            ])
             .block(Block::default().title("Time Domain").borders(Borders::ALL))
             .x_axis(
                 Axis::default()
                     .bounds([0.0, TIME_DISPLAY as f64])
                     .labels(vec![Line::raw("0"), Line::raw("128"), Line::raw("256")]),
             )
-            .y_axis(
-                Axis::default()
-                    .bounds([-2.0, 2.0])
-                    .labels(vec![Line::raw("-2"), Line::raw("0"), Line::raw("2")]),
-            );
+            .y_axis(Axis::default().bounds([-2.0, 2.0]).labels(vec![
+                Line::raw("-2"),
+                Line::raw("0"),
+                Line::raw("2"),
+            ]));
             f.render_widget(time_chart, chunks[0]);
 
             // ── FFT spectrum ─────────────────────────────────────────────────
@@ -208,31 +233,25 @@ fn run_app<B: ratatui::backend::Backend>(
             let auto_indicator = if app.auto_scale { "auto" } else { "manual" };
             let fft_title = format!("FFT Spectrum (dBFS) [{auto_indicator}]");
 
-            let fft_chart = Chart::new(vec![Dataset::default()
-                .name("dBFS")
-                .marker(symbols::Marker::Braille)
-                .graph_type(GraphType::Line)
-                .style(Style::default().fg(Color::Green))
-                .data(&spectrum_data)])
+            let fft_chart = Chart::new(vec![
+                Dataset::default()
+                    .name("dBFS")
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(GraphType::Line)
+                    .style(Style::default().fg(Color::Green))
+                    .data(&spectrum_data),
+            ])
             .block(Block::default().title(fft_title).borders(Borders::ALL))
-            .x_axis(
-                Axis::default()
-                    .bounds([0.0, nyquist])
-                    .labels(vec![
-                        Line::raw("0 Hz"),
-                        Line::raw("12 kHz"),
-                        Line::raw("24 kHz"),
-                    ]),
-            )
-            .y_axis(
-                Axis::default()
-                    .bounds([y_min, y_max])
-                    .labels(vec![
-                        Line::raw(format!("{:.0}", y_min)),
-                        Line::raw(format!("{:.0}", y_mid)),
-                        Line::raw(format!("{:.0}", y_max)),
-                    ]),
-            );
+            .x_axis(Axis::default().bounds([0.0, nyquist]).labels(vec![
+                Line::raw("0 Hz"),
+                Line::raw("12 kHz"),
+                Line::raw("24 kHz"),
+            ]))
+            .y_axis(Axis::default().bounds([y_min, y_max]).labels(vec![
+                Line::raw(format!("{:.0}", y_min)),
+                Line::raw(format!("{:.0}", y_mid)),
+                Line::raw(format!("{:.0}", y_max)),
+            ]));
             f.render_widget(fft_chart, chunks[1]);
 
             // ── Status bar ───────────────────────────────────────────────────

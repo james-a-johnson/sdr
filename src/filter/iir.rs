@@ -1,24 +1,35 @@
-use num_traits::Float;
-use crate::complex::Complex;
 use super::Filter;
+use crate::complex::Complex;
+use num_traits::Float;
 
 fn f<T: Float>(x: f64) -> T {
     T::from(x).unwrap()
 }
 
 pub struct Iir<T> {
-    b0: T, b1: T, b2: T,
-    a1: T, a2: T,
-    w1_i: T, w2_i: T,
-    w1_q: T, w2_q: T,
+    b0: T,
+    b1: T,
+    b2: T,
+    a1: T,
+    a2: T,
+    w1_i: T,
+    w2_i: T,
+    w1_q: T,
+    w2_q: T,
 }
 
 impl<T: Float + Copy> Iir<T> {
     pub fn new(b0: T, b1: T, b2: T, a1: T, a2: T) -> Self {
         Self {
-            b0, b1, b2, a1, a2,
-            w1_i: f(0.0), w2_i: f(0.0),
-            w1_q: f(0.0), w2_q: f(0.0),
+            b0,
+            b1,
+            b2,
+            a1,
+            a2,
+            w1_i: f(0.0),
+            w2_i: f(0.0),
+            w1_q: f(0.0),
+            w2_q: f(0.0),
         }
     }
 
@@ -67,13 +78,18 @@ impl<T: Float + Copy> Iir<T> {
         self.w1_q = f(0.0);
         self.w2_q = f(0.0);
     }
-
 }
 
 #[inline(always)]
 fn process_sample<T: Float + Copy>(
-    b0: T, b1: T, b2: T, a1: T, a2: T,
-    x: T, w1: &mut T, w2: &mut T,
+    b0: T,
+    b1: T,
+    b2: T,
+    a1: T,
+    a2: T,
+    x: T,
+    w1: &mut T,
+    w2: &mut T,
 ) -> T {
     let y = b0 * x + *w1;
     *w1 = b1 * x - a1 * y + *w2;
@@ -125,7 +141,10 @@ mod tests {
         // I channel should differ from Q channel since they have different inputs
         let i_vals: Vec<f32> = out.iter().map(|c| c.i).collect();
         let q_vals: Vec<f32> = out.iter().map(|c| c.q).collect();
-        assert!(i_vals != q_vals, "I and Q channels should produce different outputs for different inputs");
+        assert!(
+            i_vals != q_vals,
+            "I and Q channels should produce different outputs for different inputs"
+        );
     }
 
     #[test]
@@ -136,6 +155,10 @@ mod tests {
         let out = filter.filter(&samples);
         // Last sample should be close to 1.0 (DC passes through lowpass)
         let last = out.last().unwrap();
-        assert!((last.i - 1.0).abs() < 0.01, "DC should pass lowpass, got {}", last.i);
+        assert!(
+            (last.i - 1.0).abs() < 0.01,
+            "DC should pass lowpass, got {}",
+            last.i
+        );
     }
 }

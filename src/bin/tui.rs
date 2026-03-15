@@ -6,22 +6,22 @@ use std::time::{Duration, Instant};
 use crossterm::{
     event::{self, DisableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Style},
     symbols,
     text::Line,
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType},
-    Terminal,
 };
 
 use sdr::{
     complex::Complex,
     fft::{fft, magnitude_db},
-    filter::{iir::Iir, Filter},
+    filter::{Filter, iir::Iir},
     modulation::fm::{FmDemodulator, FmModulator},
 };
 
@@ -152,7 +152,11 @@ fn run_app<B: ratatui::backend::Backend>(
             ];
 
             let iq_chart = Chart::new(iq_datasets)
-                .block(Block::default().title("IQ Time Domain").borders(Borders::ALL))
+                .block(
+                    Block::default()
+                        .title("IQ Time Domain")
+                        .borders(Borders::ALL),
+                )
                 .x_axis(
                     Axis::default()
                         .bounds([app.scroll_offset, x_max])
@@ -161,11 +165,11 @@ fn run_app<B: ratatui::backend::Backend>(
                             Line::raw(format!("{:.0}", x_max)),
                         ]),
                 )
-                .y_axis(
-                    Axis::default()
-                        .bounds([-1.2, 1.2])
-                        .labels(vec![Line::raw("-1.0"), Line::raw("0"), Line::raw("1.0")]),
-                );
+                .y_axis(Axis::default().bounds([-1.2, 1.2]).labels(vec![
+                    Line::raw("-1.0"),
+                    Line::raw("0"),
+                    Line::raw("1.0"),
+                ]));
             f.render_widget(iq_chart, chunks[0]);
 
             // FFT Spectrum
@@ -176,25 +180,31 @@ fn run_app<B: ratatui::backend::Backend>(
                 .map(|(i, &db)| (i as f64, db as f64))
                 .collect();
 
-            let fft_datasets = vec![Dataset::default()
-                .name("dBFS")
-                .marker(symbols::Marker::Braille)
-                .graph_type(GraphType::Line)
-                .style(Style::default().fg(Color::Green))
-                .data(&spectrum_points)];
+            let fft_datasets = vec![
+                Dataset::default()
+                    .name("dBFS")
+                    .marker(symbols::Marker::Braille)
+                    .graph_type(GraphType::Line)
+                    .style(Style::default().fg(Color::Green))
+                    .data(&spectrum_points),
+            ];
 
             let fft_chart = Chart::new(fft_datasets)
-                .block(Block::default().title("FFT Spectrum (dB)").borders(Borders::ALL))
-                .x_axis(
-                    Axis::default()
-                        .bounds([0.0, FFT_SIZE as f64])
-                        .labels(vec![Line::raw("0"), Line::raw("512"), Line::raw("1024")]),
+                .block(
+                    Block::default()
+                        .title("FFT Spectrum (dB)")
+                        .borders(Borders::ALL),
                 )
-                .y_axis(
-                    Axis::default()
-                        .bounds([-120.0, 0.0])
-                        .labels(vec![Line::raw("-120"), Line::raw("-60"), Line::raw("0")]),
-                );
+                .x_axis(Axis::default().bounds([0.0, FFT_SIZE as f64]).labels(vec![
+                    Line::raw("0"),
+                    Line::raw("512"),
+                    Line::raw("1024"),
+                ]))
+                .y_axis(Axis::default().bounds([-120.0, 0.0]).labels(vec![
+                    Line::raw("-120"),
+                    Line::raw("-60"),
+                    Line::raw("0"),
+                ]));
             f.render_widget(fft_chart, chunks[1]);
 
             // Status bar

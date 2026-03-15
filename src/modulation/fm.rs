@@ -1,5 +1,5 @@
-use std::f32::consts::PI;
 use crate::complex::Complex;
+use std::f32::consts::PI;
 
 pub struct FmModulator {
     pub sample_rate: f32,
@@ -84,7 +84,12 @@ mod tests {
         // Skip transient at start, compare steady-state portion
         let start = 64;
         for (orig, rec) in baseband[start..].iter().zip(recovered[start..].iter()) {
-            assert!((orig - rec).abs() < 0.05, "Roundtrip mismatch: {} vs {}", orig, rec);
+            assert!(
+                (orig - rec).abs() < 0.05,
+                "Roundtrip mismatch: {} vs {}",
+                orig,
+                rec
+            );
         }
     }
 
