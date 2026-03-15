@@ -75,6 +75,18 @@ mod tests {
     }
 
     #[test]
+    fn am_rx_with_lowpass_builds() {
+        let n = 256;
+        let iq: Vec<Complex<f32>> = (0..n)
+            .map(|i| Complex::new((i as f32 * 0.01).sin(), (i as f32 * 0.01).cos()))
+            .collect();
+        let mut rx = AmRx::new(AmDemodulator::new(0.8))
+            .with_lowpass(48_000.0, 4_000.0, 0.707);
+        let out = rx.receive(&iq);
+        assert_eq!(out.len(), n);
+    }
+
+    #[test]
     fn am_filter_chain_order() {
         struct RecordingFilter {
             log: Rc<RefCell<Vec<usize>>>,

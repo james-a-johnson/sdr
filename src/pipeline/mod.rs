@@ -25,7 +25,7 @@ pub mod am;
 pub mod fm;
 
 use crate::complex::Complex;
-use crate::filter::{freq_shift::FreqShift, resample::RationalResampler, Filter};
+use crate::filter::{freq_shift::FreqShift, iir::Iir, resample::RationalResampler, Filter};
 
 /// Encode baseband `f32` audio into IQ samples.
 pub trait Modulate {
@@ -102,6 +102,16 @@ impl<M: Modulate> TxPipeline<M> {
         self
     }
 
+    /// Append a Butterworth biquad lowpass filter.
+    ///
+    /// * `sample_rate` — sample rate of the IQ stream in Hz
+    /// * `cutoff_hz`   — −3 dB cutoff frequency in Hz
+    /// * `q`           — quality factor; `std::f64::consts::FRAC_1_SQRT_2` (~0.707)
+    ///                   gives a maximally-flat Butterworth response
+    pub fn with_lowpass(self, sample_rate: f64, cutoff_hz: f64, q: f64) -> Self {
+        self.with_filter(Iir::lowpass(sample_rate, cutoff_hz, q))
+    }
+
     /// Append a resampler that converts from `in_rate` to `out_rate` Hz,
     /// reducing the ratio by their GCD first.
     pub fn with_rates(self, in_rate: u32, out_rate: u32) -> Self {
@@ -138,6 +148,16 @@ impl<D: Demodulate> RxPipeline<D> {
     pub fn with_filter(mut self, f: impl Filter<f32> + 'static) -> Self {
         self.iq_filters.push(Box::new(f));
         self
+    }
+
+    /// Append a Butterworth biquad lowpass filter.
+    ///
+    /// * `sample_rate` — sample rate of the IQ stream in Hz
+    /// * `cutoff_hz`   — −3 dB cutoff frequency in Hz
+    /// * `q`           — quality factor; `std::f64::consts::FRAC_1_SQRT_2` (~0.707)
+    ///                   gives a maximally-flat Butterworth response
+    pub fn with_lowpass(self, sample_rate: f64, cutoff_hz: f64, q: f64) -> Self {
+        self.with_filter(Iir::lowpass(sample_rate, cutoff_hz, q))
     }
 
     /// Append a resampler that converts from `in_rate` to `out_rate` Hz,
