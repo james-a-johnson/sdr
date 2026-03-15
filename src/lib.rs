@@ -8,9 +8,11 @@
 //! - [`modulation`] — AM, FM, and 8-FSK modulation and demodulation
 //! - [`iq_file`] — reading and writing raw interleaved f32 IQ files
 
+pub mod coding;
 pub mod complex;
 pub mod fft;
 pub mod filter;
+pub mod ft8;
 pub mod iq_file;
 pub mod modulation;
 pub mod pipeline;

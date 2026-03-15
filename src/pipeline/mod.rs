@@ -22,6 +22,7 @@
 //! ```
 
 pub mod am;
+pub mod digital;
 pub mod fm;
 pub mod fsk8;
 
