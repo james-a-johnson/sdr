@@ -23,6 +23,7 @@
 
 pub mod am;
 pub mod fm;
+pub mod fsk8;
 
 use crate::complex::Complex;
 use crate::filter::{freq_shift::FreqShift, iir::Iir, resample::RationalResampler, Filter};

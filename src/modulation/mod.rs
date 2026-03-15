@@ -7,3 +7,4 @@
 
 pub mod am;
 pub mod fm;
+pub mod fsk8;

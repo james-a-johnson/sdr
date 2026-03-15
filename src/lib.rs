@@ -5,7 +5,7 @@
 //! - [`complex`] — the [`Complex<T>`](complex::Complex) carrier type used throughout
 //! - [`fft`] — radix-2 Cooley-Tukey FFT for spectrum analysis
 //! - [`filter`] — streaming filters: biquad IIR, frequency shift, and decimation
-//! - [`modulation`] — FM modulation and demodulation
+//! - [`modulation`] — AM, FM, and 8-FSK modulation and demodulation
 //! - [`iq_file`] — reading and writing raw interleaved f32 IQ files
 
 pub mod complex;
