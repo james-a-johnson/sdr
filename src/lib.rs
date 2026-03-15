@@ -6,8 +6,10 @@
 //! - [`fft`] — radix-2 Cooley-Tukey FFT for spectrum analysis
 //! - [`filter`] — streaming filters: biquad IIR, frequency shift, and decimation
 //! - [`modulation`] — FM modulation and demodulation
+//! - [`iq_file`] — reading and writing raw interleaved f32 IQ files
 
 pub mod complex;
 pub mod fft;
 pub mod filter;
+pub mod iq_file;
 pub mod modulation;
