@@ -217,16 +217,16 @@ fn run_app<B: ratatui::backend::Backend>(
         // Poll for input
         let elapsed = frame_start.elapsed();
         let timeout = frame_duration.saturating_sub(elapsed);
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Left => app.scroll_offset = (app.scroll_offset - 16.0).max(0.0),
-                    KeyCode::Right => app.scroll_offset += 16.0,
-                    KeyCode::Up => app.zoom = (app.zoom * 1.25).min(8.0),
-                    KeyCode::Down => app.zoom = (app.zoom / 1.25).max(0.25),
-                    _ => {}
-                }
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+        {
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Left => app.scroll_offset = (app.scroll_offset - 16.0).max(0.0),
+                KeyCode::Right => app.scroll_offset += 16.0,
+                KeyCode::Up => app.zoom = (app.zoom * 1.25).min(8.0),
+                KeyCode::Down => app.zoom = (app.zoom / 1.25).max(0.25),
+                _ => {}
             }
         }
     }

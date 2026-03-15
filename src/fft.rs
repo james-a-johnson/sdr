@@ -26,7 +26,7 @@ fn is_power_of_two(n: usize) -> bool {
 
 /// Reorder `buf` into bit-reversed index order, the first step of the
 /// Cooley-Tukey DIT algorithm.
-fn bit_reverse_permute(buf: &mut Vec<Complex<f32>>) {
+fn bit_reverse_permute(buf: &mut [Complex<f32>]) {
     let n = buf.len();
     let bits = n.ilog2() as usize;
     for i in 0..n {
@@ -52,7 +52,7 @@ fn reverse_bits(mut x: usize, bits: usize) -> usize {
 /// `inverse = false` computes the forward transform; `inverse = true`
 /// computes the unnormalized inverse (the caller is responsible for the
 /// 1/N scale factor).
-fn fft_inplace(buf: &mut Vec<Complex<f32>>, inverse: bool) {
+fn fft_inplace(buf: &mut [Complex<f32>], inverse: bool) {
     let n = buf.len();
     assert!(is_power_of_two(n), "FFT length must be a power of 2");
 

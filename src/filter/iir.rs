@@ -148,6 +148,7 @@ impl<T: Float + Copy> Iir<T> {
 /// Inlined free function to avoid the borrow-checker conflict that arises when
 /// `&self` (for coefficients) and `&mut self.wN` (for state) are held
 /// simultaneously inside a method.
+#[allow(clippy::too_many_arguments)]
 #[inline(always)]
 fn process_sample<T: Float + Copy>(
     b0: T,

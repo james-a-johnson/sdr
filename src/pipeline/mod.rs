@@ -108,7 +108,7 @@ impl<M: Modulate> TxPipeline<M> {
     /// * `sample_rate` — sample rate of the IQ stream in Hz
     /// * `cutoff_hz`   — −3 dB cutoff frequency in Hz
     /// * `q`           — quality factor; `std::f64::consts::FRAC_1_SQRT_2` (~0.707)
-    ///                   gives a maximally-flat Butterworth response
+    ///   gives a maximally-flat Butterworth response
     pub fn with_lowpass(self, sample_rate: f64, cutoff_hz: f64, q: f64) -> Self {
         self.with_filter(Iir::lowpass(sample_rate, cutoff_hz, q))
     }
@@ -156,7 +156,7 @@ impl<D: Demodulate> RxPipeline<D> {
     /// * `sample_rate` — sample rate of the IQ stream in Hz
     /// * `cutoff_hz`   — −3 dB cutoff frequency in Hz
     /// * `q`           — quality factor; `std::f64::consts::FRAC_1_SQRT_2` (~0.707)
-    ///                   gives a maximally-flat Butterworth response
+    ///   gives a maximally-flat Butterworth response
     pub fn with_lowpass(self, sample_rate: f64, cutoff_hz: f64, q: f64) -> Self {
         self.with_filter(Iir::lowpass(sample_rate, cutoff_hz, q))
     }

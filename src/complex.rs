@@ -87,9 +87,7 @@ impl<T: Copy + PartialEq> PartialEq<(T, T)> for Complex<T> {
         self.i == other.0 && self.q == other.1
     }
 
-    fn ne(&self, other: &(T, T)) -> bool {
-        self.i != other.0 || self.q != other.1
-    }
+
 }
 
 impl<T: Copy + ops::Neg<Output = T>> ops::Neg for Complex<T> {

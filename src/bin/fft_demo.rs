@@ -229,7 +229,7 @@ fn run_app<B: ratatui::backend::Backend>(
             let nyquist = SAMPLE_RATE as f64 / 2.0;
             let y_min = app.y_min as f64;
             let y_max = app.y_max as f64;
-            let y_mid = ((y_min + y_max) / 2.0) as f64;
+            let y_mid = (y_min + y_max) / 2.0;
             let auto_indicator = if app.auto_scale { "auto" } else { "manual" };
             let fft_title = format!("FFT Spectrum (dBFS) [{auto_indicator}]");
 
@@ -272,38 +272,38 @@ fn run_app<B: ratatui::backend::Backend>(
 
         let elapsed = last_frame.elapsed();
         let timeout = frame_duration.saturating_sub(elapsed);
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    // Shift window up/down by 10 dB
-                    KeyCode::Up => {
-                        app.auto_scale = false;
-                        app.y_max += 10.0;
-                        app.y_min += 10.0;
-                    }
-                    KeyCode::Down => {
-                        app.auto_scale = false;
-                        app.y_max -= 10.0;
-                        app.y_min -= 10.0;
-                    }
-                    // Expand/shrink the dB range (floor moves, ceiling stays)
-                    KeyCode::Char('+') | KeyCode::Char('=') => {
-                        app.auto_scale = false;
-                        app.y_min -= 20.0;
-                    }
-                    KeyCode::Char('-') => {
-                        app.auto_scale = false;
-                        if app.db_range() > 20.0 {
-                            app.y_min += 20.0;
-                        }
-                    }
-                    // Snap back to auto-scaling
-                    KeyCode::Char('a') => {
-                        app.auto_scale = true;
-                    }
-                    _ => {}
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+        {
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                // Shift window up/down by 10 dB
+                KeyCode::Up => {
+                    app.auto_scale = false;
+                    app.y_max += 10.0;
+                    app.y_min += 10.0;
                 }
+                KeyCode::Down => {
+                    app.auto_scale = false;
+                    app.y_max -= 10.0;
+                    app.y_min -= 10.0;
+                }
+                // Expand/shrink the dB range (floor moves, ceiling stays)
+                KeyCode::Char('+') | KeyCode::Char('=') => {
+                    app.auto_scale = false;
+                    app.y_min -= 20.0;
+                }
+                KeyCode::Char('-') => {
+                    app.auto_scale = false;
+                    if app.db_range() > 20.0 {
+                        app.y_min += 20.0;
+                    }
+                }
+                // Snap back to auto-scaling
+                KeyCode::Char('a') => {
+                    app.auto_scale = true;
+                }
+                _ => {}
             }
         }
     }
