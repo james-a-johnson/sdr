@@ -9,12 +9,16 @@
 //!
 //! | Type | Description |
 //! |---|---|
-//! | [`Decimate<N>`] | Keep every N-th sample (integer decimation) |
+//! | [`Decimate<N>`] | Keep every N-th sample (integer decimation, no anti-aliasing) |
 //! | [`iir::Iir`] | Biquad IIR filter with lowpass / highpass / bandpass presets |
 //! | [`freq_shift::FreqShift`] | Frequency shift by multiplying with a rotating phasor |
+//! | [`fir::Fir`] | FIR filter with arbitrary real-valued coefficients |
+//! | [`resample::RationalResampler`] | Polyphase rational resampler for arbitrary L:M rate conversion |
 
+pub mod fir;
 pub mod freq_shift;
 pub mod iir;
+pub mod resample;
 
 use crate::complex::Complex;
 
