@@ -4,11 +4,13 @@
 //! permutation: for each source index `i` (in increasing order), compute
 //! the 9-bit bit-reversal of `i`; if the result is less than 174, emit it
 //! as the next destination index. This produces a bijection on `0..174`.
+//!
+//! The permutation is computed once at compile time and embedded in the binary.
 
-/// Build the 174-element bit-reversal permutation used by FT8.
+/// Build the 174-element bit-reversal permutation at compile time.
 ///
-/// `perm[i]` is the destination index for source bit `i`.
-fn build_perm() -> [usize; 174] {
+/// `PERM[i]` is the destination index for source bit `i`.
+const fn build_perm() -> [usize; 174] {
     let mut perm = [0usize; 174];
     let mut out_idx = 0usize;
     let mut in_idx: u32 = 0;
@@ -24,26 +26,27 @@ fn build_perm() -> [usize; 174] {
     perm
 }
 
+/// Compile-time permutation table: `PERM[i]` is the destination index for source bit `i`.
+const PERM: [usize; 174] = build_perm();
+
 /// Interleave a 174-bit codeword.
 ///
-/// `out[i] = bits[perm[i]]` — reads source bits in permuted order.
+/// `out[i] = bits[PERM[i]]` — reads source bits in permuted order.
 pub fn interleave(bits: &[u8; 174]) -> [u8; 174] {
-    let perm = build_perm();
     let mut out = [0u8; 174];
     for i in 0..174 {
-        out[i] = bits[perm[i]];
+        out[i] = bits[PERM[i]];
     }
     out
 }
 
 /// Deinterleave a 174-bit codeword (inverse of [`interleave`]).
 ///
-/// `out[perm[i]] = bits[i]` — writes bits back to their original positions.
+/// `out[PERM[i]] = bits[i]` — writes bits back to their original positions.
 pub fn deinterleave(bits: &[u8; 174]) -> [u8; 174] {
-    let perm = build_perm();
     let mut out = [0u8; 174];
     for i in 0..174 {
-        out[perm[i]] = bits[i];
+        out[PERM[i]] = bits[i];
     }
     out
 }
@@ -54,7 +57,7 @@ mod tests {
 
     #[test]
     fn perm_is_valid_bijection() {
-        let perm = build_perm();
+        let perm = PERM;
         let mut seen = [false; 174];
         for &p in &perm {
             assert!(p < 174, "perm value {p} out of range");
